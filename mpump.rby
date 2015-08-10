@@ -1,0 +1,52 @@
+
+INCLUDE "prelude.rby".
+
+# idea:
+# We want to generate result like this: <<x,y>,<a,b>> ~ <x*a, y*b> 
+# and we just have one mult in our design.
+# First of all, the inner design should have 2x clock rate,
+# and we suppose cycle 2t it will take x and a, 2t+1 for y and b.
+# But how? we could use cmx 2 to achieve this. Before that we need to 
+# "duplicate" the input wire.
+# Is this duplicate equal to fork? fork only works for single cycle, 
+# what we want to do is x_t = y_t and x_t = y_(t+1).
+# And this could be done by using .
+
+wr1 = <<x,y>,<a,b>> $wire <x,y,a,b>.
+
+# dup: generate the 2x rate input
+# result:
+#	0 - <<x_0,y_0>,<z_0,t_0>> ~ <<x_0,y_0>,<z_0,t_0>>
+#	1 - <<x_1,y_1>,<z_1,t_1>> ~ <<x_0,y_0>,<z_0,t_0>>
+#	2 - <<x_2,y_2>,<z_2,t_2>> ~ <<x_1,y_1>,<z_1,t_1>>
+#	3 - <<x_3,y_3>,<z_3,t_3>> ~ <<x_1,y_1>,<z_1,t_1>>
+#	4 - <<x_4,y_4>,<z_4,t_4>> ~ <<x_2,y_2>,<z_2,t_2>>
+#	5 - <<x_5,y_5>,<z_5,t_5>> ~ <<x_2,y_2>,<z_2,t_2>>
+#	6 - <<x_6,y_6>,<z_6,t_6>> ~ <<x_3,y_3>,<z_3,t_3>>
+#	7 - <<x_7,y_7>,<z_7,t_7>> ~ <<x_3,y_3>,<z_3,t_3>>
+#	8 - <<x_8,y_8>,<z_8,t_8>> ~ <<x_4,y_4>,<z_4,t_4>>
+#	9 - <<x_9,y_9>,<z_9,t_9>> ~ <<x_4,y_4>,<z_4,t_4>>
+
+dup = wr1; fork; zip 4; map 4 (inv_bundle 2); wr1^~1.
+
+# multi-pumping version 1:
+# This version has one weird result, it will only out put the first half
+# of the generated result.
+# I think it might due to the algebric characteristic of bundle and inv_bundle
+# For the first inv_bundle we use, it will only take the first 10 result.
+# But I think it's reasonable.
+# result:
+#	0 - <<x_0,y_0>,<a_0,b_0>> ~ <(x_0 * a_0),(y_0 * b_0)>
+#	1 - <<x_1,y_1>,<a_1,b_1>> ~ <(x_1 * a_1),(y_1 * b_1)>
+#	2 - <<x_2,y_2>,<a_2,b_2>> ~ <(x_2 * a_2),(y_2 * b_2)>
+#	3 - <<x_3,y_3>,<a_3,b_3>> ~ <(x_3 * a_3),(y_3 * b_3)>
+#	4 - <<x_4,y_4>,<a_4,b_4>> ~ <(x_4 * a_4),(y_4 * b_4)>
+#	5 - <<x_5,y_5>,<a_5,b_5>> ~ <?,?>
+#	6 - <<x_6,y_6>,<a_6,b_6>> ~ <?,?>
+#	7 - <<x_7,y_7>,<a_7,b_7>> ~ <?,?>
+#	8 - <<x_8,y_8>,<a_8,b_8>> ~ <?,?>
+#	9 - <<x_9,y_9>,<a_9,b_9>> ~ <?,?>
+
+mp1 = dup; map 2 (cmx 2); mult; bundle 2.
+
+current = mp1.
