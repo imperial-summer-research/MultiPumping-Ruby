@@ -46,6 +46,9 @@ dup = wr1; fork; zip 4; map 4 (inv_bundle 2); wr1^~1.
 #	7 - <<x_7,y_7>,<a_7,b_7>> ~ <?,?>
 #	8 - <<x_8,y_8>,<a_8,b_8>> ~ <?,?>
 #	9 - <<x_9,y_9>,<a_9,b_9>> ~ <?,?>
+#
+# update:
+# This one could be fixed by using --extra-cycles N. 
 
 mp1 = dup; map 2 (cmx 2); mult; bundle 2.
 
